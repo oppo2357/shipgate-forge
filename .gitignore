@@ -1,0 +1,6 @@
+node_modules/
+static/shipgate-ui/node_modules/
+static/shipgate-ui/dist/
+.env
+*.log
+*.tsbuildinfo

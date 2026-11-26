@@ -1,0 +1,94 @@
+modules:
+  jira:issuePanel:
+    - key: shipgate-issue-panel
+      resource: shipgate-ui
+      resolver:
+        function: shipgate-resolver
+      viewportSize: large
+      title: ShipGate Release Guard
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+
+  jira:projectPage:
+    - key: shipgate-project-page
+      resource: shipgate-ui
+      resolver:
+        function: shipgate-resolver
+      title: ShipGate Release Board
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+
+  rovo:agent:
+    - key: shipgate-rovo-auditor
+      name: ShipGate Release Auditor
+      description: Context-aware release readiness and blast-radius auditor across Jira issues, linked blockers, and Confluence runbooks.
+      prompt: >
+        You are ShipGate, a fail-closed release readiness auditor for software engineering teams.
+        Always inspect live Jira issue blockers, sub-tasks, acceptance criteria, and linked Confluence
+        runbook freshness using your actions before recommending GO, HOLD, or BLOCK.
+        Cite exact issue keys, blocker statuses, and runbook ages. Never guess missing fields.
+      actions:
+        - audit-issue-readiness
+        - generate-rollback-plan
+        - post-gate-comment
+      conversationStarters:
+        - "Audit this issue's release readiness and blast radius"
+        - "Generate a rollback checklist before Friday's deploy"
+        - "Post the signed ShipGate readiness report to this Jira ticket"
+
+  action:
+    - key: audit-issue-readiness
+      name: Audit Issue Readiness
+      function: shipgate-rovo-fn
+      actionVerb: GET
+      description: Evaluates a Jira issue's blockers, sub-tasks, linked Confluence runbook freshness, and returns a deterministic GO/HOLD/BLOCK score.
+      inputs:
+        issueKey:
+          title: Jira Issue Key
+          type: string
+          required: true
+          description: Jira issue key such as PAY-412
+
+    - key: generate-rollback-plan
+      name: Generate Rollback Plan
+      function: shipgate-rovo-fn
+      actionVerb: GET
+      description: Builds a blast-radius rollback checklist tailored to the issue's affected services, schema changes, and feature flags.
+      inputs:
+        issueKey:
+          title: Jira Issue Key
+          type: string
+          required: true
+          description: Jira issue key such as PAY-412
+
+    - key: post-gate-comment
+      name: Post Gate Audit Comment
+      function: shipgate-rovo-fn
+      actionVerb: CREATE
+      description: Posts the verified ShipGate GO/HOLD/BLOCK readiness report as a structured comment on the target Jira issue.
+      inputs:
+        issueKey:
+          title: Jira Issue Key
+          type: string
+          required: true
+          description: Jira issue key such as PAY-412
+
+  function:
+    - key: shipgate-resolver
+      handler: index.handler
+    - key: shipgate-rovo-fn
+      handler: rovoActions.run
+
+resources:
+  - key: shipgate-ui
+    path: static/shipgate-ui/dist
+
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - read:confluence-content.all
+    - storage:app
+
+app:
+  runtime:
+    name: nodejs22.x
+  id: ari:cloud:ecosystem::app/00000000-0000-0000-0000-000000000000
